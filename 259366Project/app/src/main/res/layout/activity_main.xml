@@ -12,6 +12,7 @@
         android:layout_height="wrap_content"
         android:layout_above="@+id/getLocationButton"
         android:hint="Enter city name"
+        android:text="london"
         android:inputType="text" />
 
 

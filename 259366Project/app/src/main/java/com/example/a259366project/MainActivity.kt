@@ -4,6 +4,7 @@ import android.location.Geocoder
 import androidx.appcompat.app.AppCompatActivity
 import android.os.AsyncTask
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -36,7 +37,10 @@ class MainActivity : AppCompatActivity() {
         geocoder = Geocoder(this)
 
         getLocationButton.setOnClickListener {
+            Log.d("debug", "DUPA")
             val cityName = cityEditText.text.toString()
+            Log.d("debug", cityName)
+
             getLocationCoordinates(cityName)
         }
     }
@@ -102,19 +106,22 @@ class MainActivity : AppCompatActivity() {
 
     private fun getLocationCoordinates(location: String) {
         val addresses = geocoder.getFromLocationName(location, 1)
-        if (addresses != null) {
-            if (addresses.isNotEmpty()) {
-                val latitude = addresses[0].latitude
-                val longitude = addresses[0].longitude
-                val roundedLatitude = "%.2f".format(latitude).toDouble()
-                val roundedLongitude = "%.2f".format(longitude).toDouble()
-                latitudeTextView.text = "Latitude: $roundedLatitude"
-                longitudeTextView.text = "Longitude: $roundedLongitude"
 
-                fetchWeatherData(roundedLatitude.toString(), roundedLongitude.toString());
+        if (addresses != null) {
+
+            val latitude = addresses[0].latitude
+            val longitude = addresses[0].longitude
+            latitudeTextView.text = "Latitude: $latitude"
+            longitudeTextView.text = "Longitude: $longitude"
+
+            Log.d("debug", latitude.toString())
+            fetchWeatherData(latitude.toString(), longitude.toString());
+            Log.d("debug", longitude.toString())
+
             } else {
-                Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show()
+            Log.d("debug", "DUPA if niedziala")
+            Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show()
             }
-        }
+
     }
 }
