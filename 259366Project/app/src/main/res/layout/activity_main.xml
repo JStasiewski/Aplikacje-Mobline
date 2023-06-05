@@ -19,7 +19,7 @@
         android:id="@+id/getLocationButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Get Location"
+        android:text="Search for weather"
         android:layout_marginBottom="16dp"
         android:layout_above="@+id/latitudeTextView" />
 
@@ -52,9 +52,13 @@
         android:textSize="16sp" />
 
     <ScrollView
+        xmlns:android="http://schemas.android.com/apk/res/android"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_margin="16dp"
+        android:layout_weight="1"
+        android:background="#DDD"
+        android:radius="16dp">
 
         <TextView
             android:id="@+id/hourlyDataTextView"
@@ -64,5 +68,14 @@
             android:paddingBottom="16dp"
             android:textSize="16sp" />
     </ScrollView>
+
+    <Button
+        android:id="@+id/getGPSLocationButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Get weather form your location"
+        android:layout_marginBottom="16dp"
+        android:layout_above="@+id/latitudeTextView" />
+
 
 </LinearLayout>
