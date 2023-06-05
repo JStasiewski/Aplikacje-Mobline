@@ -15,7 +15,6 @@
         android:text="london"
         android:inputType="text" />
 
-
     <Button
         android:id="@+id/getLocationButton"
         android:layout_width="match_parent"
@@ -51,5 +50,19 @@
         android:layout_marginBottom="16dp"
         android:text="Longitude:"
         android:textSize="16sp" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <TextView
+            android:id="@+id/hourlyDataTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingTop="16dp"
+            android:paddingBottom="16dp"
+            android:textSize="16sp" />
+    </ScrollView>
 
 </LinearLayout>
