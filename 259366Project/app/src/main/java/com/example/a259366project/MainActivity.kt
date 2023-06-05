@@ -1,5 +1,7 @@
 package com.example.a259366project
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.location.Geocoder
 import androidx.appcompat.app.AppCompatActivity
 import android.os.AsyncTask
@@ -9,6 +11,10 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import okhttp3.*
 import org.json.JSONArray
 import org.json.JSONException
@@ -23,28 +29,36 @@ class MainActivity : AppCompatActivity() {
     private lateinit var hourlyDataTextView: TextView
     private lateinit var cityEditText: EditText
     private lateinit var getLocationButton: Button
+    private lateinit var getGPSLocationButton: Button
     private lateinit var geocoder: Geocoder
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-
         temperatureTextView = findViewById(R.id.temperatureTextView)
         hourlyDataTextView = findViewById(R.id.hourlyDataTextView)
-
+        getGPSLocationButton = findViewById(R.id.getGPSLocationButton)
         cityEditText = findViewById(R.id.cityEditText)
         getLocationButton = findViewById(R.id.getLocationButton)
         latitudeTextView = findViewById(R.id.latitudeTextView)
         longitudeTextView = findViewById(R.id.longitudeTextView)
         geocoder = Geocoder(this)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         getLocationButton.setOnClickListener {
-            Log.d("debug", "DUPA")
             val cityName = cityEditText.text.toString()
-            Log.d("debug", cityName)
-
             getLocationCoordinates(cityName)
+        }
+
+        getGPSLocationButton.setOnClickListener {
+            if (checkLocationPermission()) {
+                getGPSLocation()
+                cityEditText.setText("Your location")
+            } else {
+                requestLocationPermission()
+            }
         }
     }
 
@@ -81,7 +95,6 @@ class MainActivity : AppCompatActivity() {
                     val weatherData = parseWeatherData(result)
                     temperatureTextView.text = "Temperature now: ${weatherData.temperature}°C"
 
-                    val hourlyDataTextView = findViewById<TextView>(R.id.hourlyDataTextView)
                     val hourlyDataText = StringBuilder()
                     for (hourlyData in weatherData.hourlyData) {
                         hourlyDataText.append("Time: ${hourlyData.time}\n")
@@ -136,45 +149,75 @@ class MainActivity : AppCompatActivity() {
         return WeatherData(temperature, hourlyData)
     }
 
-    private fun parseDoubleArray(jsonArray: JSONArray): List<Double> {
-        val doubleList = mutableListOf<Double>()
-        for (i in 0 until jsonArray.length()) {
-            val value = jsonArray.optDouble(i)
-            if (!value.isNaN()) {
-                doubleList.add(value)
-            }
-        }
-        return doubleList
-    }
-
-    private fun buildHourlyDataString(hourlyTemperature: List<Double>, hourlyWindSpeed: List<Double>): String {
-        val stringBuilder = StringBuilder()
-        for (i in 0 until hourlyTemperature.size) {
-            stringBuilder.append("Time: ${i + 1}\n")
-            stringBuilder.append("Temperature: ${hourlyTemperature[i]}°C\n")
-            stringBuilder.append("Wind Speed: ${hourlyWindSpeed[i]}\n\n")
-        }
-        return stringBuilder.toString()
-    }
-
     private fun getLocationCoordinates(location: String) {
         val addresses = geocoder.getFromLocationName(location, 1)
 
-        if (addresses != null) {
-
+        if (addresses != null && addresses.isNotEmpty()) {
             val latitude = addresses[0].latitude
             val longitude = addresses[0].longitude
             latitudeTextView.text = "Latitude: $latitude"
             longitudeTextView.text = "Longitude: $longitude"
-
-            Log.d("debug", latitude.toString())
             fetchWeatherData(latitude.toString(), longitude.toString())
-            Log.d("debug", longitude.toString())
-
         } else {
-            Log.d("debug", "DUPA if niedziala")
             Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show()
         }
+    }
 
+    private fun checkLocationPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestLocationPermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+            REQUEST_PERMISSIONS_CODE
+        )
+    }
+
+    private fun getGPSLocation() {
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location ->
+                if (location != null) {
+                    val latitude = location.latitude
+                    val longitude = location.longitude
+                    latitudeTextView.text = "Latitude: $latitude"
+                    longitudeTextView.text = "Longitude: $longitude"
+                    fetchWeatherData(latitude.toString(), longitude.toString())
+                } else {
+                    Toast.makeText(this, "GPS location not available", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { exception ->
+                Toast.makeText(this, "Failed to get GPS location: ${exception.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_PERMISSIONS_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            getGPSLocation()
+        }
+    }
+
+    companion object {
+        private const val REQUEST_PERMISSIONS_CODE = 1
     }
 }
