@@ -1,6 +1,8 @@
 package com.example.a259366project
 
 import android.Manifest
+import android.content.Context
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Geocoder
 import androidx.appcompat.app.AppCompatActivity
@@ -9,6 +11,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Button
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
@@ -30,8 +33,12 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cityEditText: EditText
     private lateinit var getLocationButton: Button
     private lateinit var getGPSLocationButton: Button
+    private lateinit var addToFavoritesButton: Button
     private lateinit var geocoder: Geocoder
     private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var favoritesLayout: LinearLayout
+    private val favoriteCities: HashSet<String> = HashSet()
+    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +51,8 @@ class MainActivity : AppCompatActivity() {
         getLocationButton = findViewById(R.id.getLocationButton)
         latitudeTextView = findViewById(R.id.latitudeTextView)
         longitudeTextView = findViewById(R.id.longitudeTextView)
+        addToFavoritesButton = findViewById(R.id.addToFavoritesButton)
+        favoritesLayout = findViewById(R.id.favoritesLayout)
         geocoder = Geocoder(this)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -58,6 +67,19 @@ class MainActivity : AppCompatActivity() {
                 cityEditText.setText("Your location")
             } else {
                 requestLocationPermission()
+            }
+        }
+
+        sharedPreferences = getSharedPreferences("Favorites", Context.MODE_PRIVATE)
+        loadFavoriteCities()
+
+        addToFavoritesButton.setOnClickListener {
+            val cityName = cityEditText.text.toString()
+            if (cityName.isNotEmpty()) {
+                addFavoriteCity(cityName)
+                createFavoriteButton(cityName)
+                saveFavoriteCities()
+                cityEditText.text.clear()
             }
         }
     }
@@ -149,33 +171,24 @@ class MainActivity : AppCompatActivity() {
         return WeatherData(temperature, hourlyData)
     }
 
-    private fun getLocationCoordinates(location: String) {
-        val addresses = geocoder.getFromLocationName(location, 1)
-
-        if (addresses != null && addresses.isNotEmpty()) {
-            val latitude = addresses[0].latitude
-            val longitude = addresses[0].longitude
-            latitudeTextView.text = "Latitude: $latitude"
-            longitudeTextView.text = "Longitude: $longitude"
-            fetchWeatherData(latitude.toString(), longitude.toString())
-        } else {
-            Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show()
+    private fun getLocationCoordinates(cityName: String) {
+        try {
+            val addresses = geocoder.getFromLocationName(cityName, 1)
+            if (addresses.isNotEmpty()) {
+                val latitude = addresses[0].latitude.toString()
+                val longitude = addresses[0].longitude.toString()
+                latitudeTextView.text = "Latitude: $latitude"
+                longitudeTextView.text = "Longitude: $longitude"
+                fetchWeatherData(latitude, longitude)
+            } else {
+                temperatureTextView.text = "Invalid city name."
+                hourlyDataTextView.text = ""
+            }
+        } catch (e: IOException) {
+            Log.e("LOCATION", "Error getting location coordinates: ${e.message}")
+            temperatureTextView.text = "Error getting location coordinates."
+            hourlyDataTextView.text = ""
         }
-    }
-
-    private fun checkLocationPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            android.Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun requestLocationPermission() {
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
-            REQUEST_PERMISSIONS_CODE
-        )
     }
 
     private fun getGPSLocation() {
@@ -187,37 +200,95 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
             return
         }
         fusedLocationClient.lastLocation
             .addOnSuccessListener { location ->
                 if (location != null) {
-                    val latitude = location.latitude
-                    val longitude = location.longitude
+                    val latitude = location.latitude.toString()
+                    val longitude = location.longitude.toString()
                     latitudeTextView.text = "Latitude: $latitude"
                     longitudeTextView.text = "Longitude: $longitude"
-                    fetchWeatherData(latitude.toString(), longitude.toString())
+                    fetchWeatherData(latitude, longitude)
                 } else {
-                    Toast.makeText(this, "GPS location not available", Toast.LENGTH_SHORT).show()
+                    temperatureTextView.text = "Failed to get GPS location."
+                    hourlyDataTextView.text = ""
                 }
             }
-            .addOnFailureListener { exception ->
-                Toast.makeText(this, "Failed to get GPS location: ${exception.message}", Toast.LENGTH_SHORT).show()
+            .addOnFailureListener { e ->
+                Log.e("GPS", "Error getting GPS location: ${e.message}")
+                temperatureTextView.text = "Error getting GPS location."
+                hourlyDataTextView.text = ""
             }
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_PERMISSIONS_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            getGPSLocation()
-        }
+    private fun checkLocationPermission(): Boolean {
+        val permission = Manifest.permission.ACCESS_FINE_LOCATION
+        val result = ContextCompat.checkSelfPermission(this, permission)
+        return result == PackageManager.PERMISSION_GRANTED
     }
 
-    companion object {
-        private const val REQUEST_PERMISSIONS_CODE = 1
+    private fun requestLocationPermission() {
+        val permission = Manifest.permission.ACCESS_FINE_LOCATION
+        ActivityCompat.requestPermissions(this, arrayOf(permission), 1)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putStringArrayList("favoriteCities", ArrayList(favoriteCities))
+    }
+
+    private fun addFavoriteCity(cityName: String) {
+        favoriteCities.add(cityName)
+    }
+
+    private fun createFavoriteButton(cityName: String) {
+        val favoriteButton = Button(this)
+        favoriteButton.text = cityName
+
+        favoriteButton.setOnClickListener {
+            // Handle click event for favorite city button
+            Toast.makeText(this, "Clicked on $cityName", Toast.LENGTH_SHORT).show()
+            getLocationCoordinates(cityName)
+        }
+
+        favoriteButton.setOnLongClickListener {
+            // Handle long press event for favorite city button
+            removeFavoriteCity(cityName)
+            favoritesLayout.removeView(favoriteButton)
+            saveFavoriteCities()
+            Toast.makeText(this, "$cityName removed from favorites", Toast.LENGTH_SHORT).show()
+            true
+        }
+
+        favoritesLayout.addView(favoriteButton)
+    }
+
+    private fun removeFavoriteCity(cityName: String) {
+        favoriteCities.remove(cityName)
+    }
+
+    private fun saveFavoriteCities() {
+        val editor = sharedPreferences.edit()
+        editor.putStringSet("FavoriteCities", favoriteCities)
+        editor.apply()
+    }
+
+    private fun loadFavoriteCities() {
+        favoriteCities.clear()
+        val savedFavoriteCities = sharedPreferences.getStringSet("FavoriteCities", emptySet())
+        if (savedFavoriteCities != null) {
+            favoriteCities.addAll(savedFavoriteCities)
+            for (city in favoriteCities) {
+                createFavoriteButton(city)
+            }
+        }
     }
 }
