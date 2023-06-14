@@ -1,0 +1,110 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginRight="10dp">
+
+        <EditText
+            android:id="@+id/cityEditText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter city name"
+            android:text=""
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/getLocationButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Search for weather"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:id="@+id/temperatureTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/latitudeTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Latitude:"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/longitudeTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Longitude:"
+            android:textSize="16sp" />
+
+        <Button
+            android:id="@+id/addToFavoritesButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Add to Favorites" />
+
+        <Button
+            android:id="@+id/getGPSLocationButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Get weather from your location"
+            android:layout_marginTop="16dp" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#DDD"
+            android:padding="16dp"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:id="@+id/hourlyDataTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingTop="16dp"
+                android:paddingBottom="16dp"
+                android:textSize="16sp" />
+
+        </ScrollView>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#DDD"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:id="@+id/favoritesLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#DDD"
+                android:orientation="vertical"
+                android:padding="8dp" />
+
+        </ScrollView>
+
+    </LinearLayout>
+
+</LinearLayout>
